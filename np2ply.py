@@ -50,7 +50,7 @@ class PLYWriter:
 
 # example usage
 
-writer = PLYWriter(20, 0)
+writer = PLYWriter(20, 0, "example")
 
 x = np.random.rand(20)
 y = np.random.rand(20)
@@ -59,11 +59,11 @@ data1 = np.random.rand(20)
 data2 = np.random.rand(20, 1).astype(int)
 data3 = np.random.rand(2, 30)
 
-writer.add_vertex_channel("x", "yfloat", x)
+writer.add_vertex_channel("x", "float", x)
 writer.add_vertex_channel("y", "float", y)
 writer.add_vertex_channel("z", "float", z)
 writer.add_vertex_channel("data1", "float", data1)
 writer.add_vertex_channel("data2", "int", data2)
 writer.add_vertex_channel("data3", "double", data3)
 
-writer.export(r"d:\example.ply")
+writer.export(r"d:/example.ply")
