@@ -1,4 +1,5 @@
 # convert numpy array to ply files
+import sys
 import numpy as np
 
 class PLYWriter:
@@ -55,36 +56,48 @@ class PLYWriter:
     def add_face_channels(self, key: str, data: np.array):
         pass # To-do
 
-    def export(self, path):
+    def print_header(self, path: str, format: str):
         with open(path, "w") as f:
-            f.writelines(["ply\n", "format ascii\n", "comment " + self.comment + "\n"])
+            f.writelines(["ply\n", "format " + format + " 1.0\n", "comment " + self.comment + "\n"])
             f.write("element vertex " + str(self.num_vertices) + "\n")
             for i in range(self.num_vertex_channels):
                 f.write("property " + self.vertex_data_type[i] + " " + self.vertex_channels[i] + "\n")
             f.write("end_header\n")
+
+    def export(self, path):
+        self.print_header(path, "binary_" + sys.byteorder + "_endian")
+        with open(path, "ab") as f:
+            for i in range(self.num_vertices):
+                for j in range(self.num_vertex_channels):
+                    f.write(self.vertex_data[j][i])
+
+    def export_ascii(self, path):
+        self.print_header(path, "ascii")
+        with open(path, "a") as f:
             for i in range(self.num_vertices):
                 for j in range(self.num_vertex_channels):
                     f.write(str(self.vertex_data[j][i]) + " ")
                 f.write("\n")
 
-
 # example usage
-x = np.random.rand(20)
-y = np.random.rand(20)
-z = np.random.rand(20)
-r = (255*np.random.rand(20)).astype(int)
-g = (255*np.random.rand(20)).astype(int)
-b = (255*np.random.rand(20)).astype(int)
-data1 = np.random.rand(20)
-data2 = np.random.rand(20, 1).astype(int)
-data3 = np.random.rand(2, 30)
+# To-do: do these type casts internally
+x = np.float32(np.random.rand(20))
+y = np.float32(np.random.rand(20))
+z = np.float32(np.random.rand(20))
+r = np.ubyte(255*np.random.rand(20))
+g = np.ubyte(255*np.random.rand(20))
+b = np.ubyte(255*np.random.rand(20))
+data1 = np.float32(np.random.rand(20))
+data2 = np.uint32(2147483647*np.random.rand(20, 1)) # there is no uint32 in houdini vex, so we can't go beyond int32
+data3 = np.float64(np.random.rand(2, 30)) # same here, double will be casted to float in houdini
 
 writer = PLYWriter(20, 0, "example")
 
 writer.add_vertex_pos(x,y,z)
 writer.add_vertex_color_uchar(r,g,b)
 writer.add_vertex_channel("data1", "float", data1)
-writer.add_vertex_channel("data2", "int", data2)
+writer.add_vertex_channel("data2", "uint", data2)
 writer.add_vertex_channel("data3", "double", data3)
 
 writer.export("example.ply")
+writer.export_ascii("example_ascii.ply")
