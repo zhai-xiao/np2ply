@@ -2,6 +2,12 @@
 import sys
 import numpy as np
 
+ply_supported_types = ['char', 'uchar', 'short', 'ushort', 'int', 'uint', 'float', 'double']
+corresponding_numpy_types = [np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.float32, np.float64]
+type_map = {}
+for i in range(len(ply_supported_types)):
+    type_map[ply_supported_types[i]] = corresponding_numpy_types[i]
+
 class PLYWriter:
     def __init__(self, num_vertices: int, num_faces: int, comment = "created by PLYWriter"):
         assert num_vertices != 0
@@ -17,6 +23,9 @@ class PLYWriter:
         self.comment = comment
     
     def add_vertex_channel(self, key: str, type: str, data: np.array):
+        if type not in ply_supported_types:
+            print("Unknown type " + type + " detected, skipping this channel")
+            return
         if data.ndim == 1:
             assert data.size == self.num_vertices
             self.num_vertex_channels += 1
@@ -24,7 +33,7 @@ class PLYWriter:
                 print("WARNING: duplicate key " + key + " detected")
             self.vertex_channels.append(key)
             self.vertex_data_type.append(type)
-            self.vertex_data.append(data)
+            self.vertex_data.append(type_map[type](data))
         else:
             num_col = data.size // self.num_vertices
             assert data.ndim == 2 and data.size == num_col * self.num_vertices
@@ -36,7 +45,7 @@ class PLYWriter:
                     print("WARNING: duplicate key " + item_key + " detected")
                 self.vertex_channels.append(item_key)
                 self.vertex_data_type.append(type)
-                self.vertex_data.append(data[:,i])
+                self.vertex_data.append(type_map[type](data[:,i]))
     
     def add_vertex_pos(self, x: np.array, y: np.array, z: np.array):
         self.add_vertex_channel("x", "float", x)
@@ -80,16 +89,15 @@ class PLYWriter:
                 f.write("\n")
 
 # example usage
-# To-do: do these type casts internally
-x = np.float32(np.random.rand(20))
-y = np.float32(np.random.rand(20))
-z = np.float32(np.random.rand(20))
-r = np.ubyte(255*np.random.rand(20))
-g = np.ubyte(255*np.random.rand(20))
-b = np.ubyte(255*np.random.rand(20))
-data1 = np.float32(np.random.rand(20))
-data2 = np.uint32(2147483647*np.random.rand(20, 1)) # there is no uint32 in houdini vex, so we can't go beyond int32
-data3 = np.float64(np.random.rand(2, 30)) # same here, double will be casted to float in houdini
+x = np.random.rand(20)
+y = np.random.rand(20)
+z = np.random.rand(20)
+r = 255*np.random.rand(20)
+g = 255*np.random.rand(20)
+b = 255*np.random.rand(20)
+data1 = np.random.rand(20)
+data2 = 2147483647*np.random.rand(20, 1) # there is no uint32 in houdini vex, so we can't go beyond int32
+data3 = np.random.rand(2, 30)
 
 writer = PLYWriter(20, 0, "example")
 
