@@ -2,17 +2,18 @@
 import sys
 import numpy as np
 
-ply_supported_types = ['char', 'uchar', 'short', 'ushort', 'int', 'uint', 'float', 'double']
-corresponding_numpy_types = [np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.float32, np.float64]
-type_map = {}
-for i in range(len(ply_supported_types)):
-    type_map[ply_supported_types[i]] = corresponding_numpy_types[i]
-
 class PLYWriter:
     def __init__(self, num_vertices: int, num_faces = 0, face_type = "tri", comment = "created by PLYWriter"):
         assert num_vertices > 0, "num_vertices should be greater than 0"
         assert num_faces >=0, "num_faces shouldn't be less than 0"
-        assert face_type == "tri" or face_type == "quad", "Only tri and quad faces are supported for now"
+        assert face_type == "tri" or face_type == "quad", "Only tri and quad faces are supported for now"       
+
+        self.ply_supported_types = ['char', 'uchar', 'short', 'ushort', 'int', 'uint', 'float', 'double']
+        self.corresponding_numpy_types = [np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.float32, np.float64]
+        self.type_map = {}
+        for i in range(len(self.ply_supported_types)):
+            self.type_map[self.ply_supported_types[i]] = self.corresponding_numpy_types[i]
+
         self.num_vertices = num_vertices
         self.num_vertex_channels = 0
         self.vertex_channels = []
@@ -31,7 +32,7 @@ class PLYWriter:
         self.comment = comment
     
     def add_vertex_channel(self, key: str, type: str, data: np.array):
-        if type not in ply_supported_types:
+        if type not in self.ply_supported_types:
             print("Unknown type " + type + " detected, skipping this channel")
             return
         if data.ndim == 1:
@@ -41,7 +42,7 @@ class PLYWriter:
                 print("WARNING: duplicate key " + key + " detected")
             self.vertex_channels.append(key)
             self.vertex_data_type.append(type)
-            self.vertex_data.append(type_map[type](data))
+            self.vertex_data.append(self.type_map[type](data))
         else:
             num_col = data.size // self.num_vertices
             assert data.ndim == 2 and data.size == num_col * self.num_vertices, "The dimension of the vertex channel is not correct"
@@ -53,12 +54,17 @@ class PLYWriter:
                     print("WARNING: duplicate key " + item_key + " detected")
                 self.vertex_channels.append(item_key)
                 self.vertex_data_type.append(type)
-                self.vertex_data.append(type_map[type](data[:,i]))
+                self.vertex_data.append(self.type_map[type](data[:,i]))
     
     def add_vertex_pos(self, x: np.array, y: np.array, z: np.array):
         self.add_vertex_channel("x", "float", x)
         self.add_vertex_channel("y", "float", y)
         self.add_vertex_channel("z", "float", z)
+    
+    def add_vertex_normal(self, nx: np.array, ny: np.array, nz: np.array):
+        self.add_vertex_channel("nx", "float", nx)
+        self.add_vertex_channel("ny", "float", ny)
+        self.add_vertex_channel("nz", "float", nz)
         
     def add_vertex_color(self, r: np.array, g: np.array, b: np.array):
         self.add_vertex_channel("red", "float", r)
@@ -79,7 +85,7 @@ class PLYWriter:
         self.face_indices = np.reshape(indices, (self.num_faces, vert_per_face))
         
     def add_face_channel(self, key: str, type: str, data: np.array):
-        if type not in ply_supported_types:
+        if type not in self.ply_supported_types:
             print("Unknown type " + type + " detected, skipping this channel")
             return
         if data.ndim == 1:
@@ -89,7 +95,7 @@ class PLYWriter:
                 print("WARNING: duplicate key " + key + " detected")
             self.face_channels.append(key)
             self.face_data_type.append(type)
-            self.face_data.append(type_map[type](data))
+            self.face_data.append(self.type_map[type](data))
         else:
             num_col = data.size // self.num_faces
             assert data.ndim == 2 and data.size == num_col * self.num_faces, "The dimension of the face channel is not correct"
@@ -101,7 +107,7 @@ class PLYWriter:
                     print("WARNING: duplicate key " + item_key + " detected")
                 self.face_channels.append(item_key)
                 self.face_data_type.append(type)
-                self.face_data.append(type_map[type](data[:,i]))
+                self.face_data.append(self.type_map[type](data[:,i]))
     
     def sanity_check(self):
         assert "x" in self.vertex_channels, "The vertex pos channel is missing"
@@ -159,30 +165,3 @@ class PLYWriter:
                 for j in range(self.num_face_channels):
                     f.write(str(self.face_data[j][i]) + " ")
                 f.write("\n")
-
-# example usage
-x = np.random.rand(20)
-y = np.random.rand(20)
-z = np.random.rand(20)
-r = 255*np.random.rand(20)
-g = 255*np.random.rand(20)
-b = 255*np.random.rand(20)
-vdata1 = np.random.rand(20)
-vdata2 = 2147483647*np.random.rand(20, 1) # there is no uint32 in houdini vex, so we can't go beyond int32
-vdata3 = np.random.rand(2, 30)
-findices = (20*np.random.rand(5, 4)).astype(int)
-fdata = np.random.rand(5)
-
-writer = PLYWriter(20, 5, "quad")
-# essential channels
-writer.add_vertex_pos(x,y,z)
-writer.add_faces(findices)
-# optional channels
-writer.add_vertex_color_uchar(r,g,b)
-writer.add_vertex_channel("vdata1", "float", vdata1)
-writer.add_vertex_channel("vdata2", "uint", vdata2)
-writer.add_vertex_channel("vdata3", "double", vdata3)
-writer.add_face_channel("fdata", "float", fdata)
-
-writer.export("example.ply")
-writer.export_ascii("example_ascii.ply")
