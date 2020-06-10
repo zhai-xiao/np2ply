@@ -128,7 +128,7 @@ class PLYWriter:
                 f.write("property list uchar int vertex_indices\n")
                 for i in range(self.num_face_channels):
                     f.write("property " + self.face_data_type[i] + " " + self.face_channels[i] + "\n")
-                f.write("end_header\n")
+            f.write("end_header\n")
 
     def export(self, path):
         self.sanity_check()
