@@ -20,11 +20,14 @@ writer.add_faces(findices)
 #      .add_faces is unnecessary if num_faces is 0
 
 # fill optional channels
-writer.add_vertex_color(r,g,b)
-writer.add_vertex_color_uchar(r,g,b)
+writer.add_vertex_normal(vn[0,:], vn[1,:], vn[2,:])
+writer.add_vertex_rgba(r,g,b,a)
+writer.add_vertex_id()
+writer.add_vertex_piece(np.ones(20))
 writer.add_vertex_channel("vdata1", "float", vdata1)
 writer.add_vertex_channel("vdata2", "uint", vdata2)
-writer.add_vertex_normal(vdata3[0,:], vdata3[1,:], vdata3[2,:])
+writer.add_face_id()
+writer.add_face_piece(2*np.ones(5))
 writer.add_face_channel("fdata", "float", fdata)
 
 # export binary ply file
